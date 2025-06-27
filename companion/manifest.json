@@ -3,7 +3,7 @@
 	"name": "calrec-cscp",
 	"shortname": "cscp",
 	"description": "Calrec CSCP",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-calrec-cscp.git",
 	"bugs": "https://github.com/bitfocus/companion-module-calrec-cscp/issues",
@@ -22,5 +22,5 @@
 	"legacyIds": [],
 	"manufacturer": "Calrec",
 	"products": ["CSCP"],
-	"keywords": ["serial","protocol","cscp"]
+	"keywords": ["serial", "protocol", "cscp"]
 }
