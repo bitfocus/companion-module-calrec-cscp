@@ -1,6 +1,6 @@
 {
-	"name": "your-module-name",
-	"version": "0.1.0",
+	"name": "calrec-cscp",
+	"version": "1.0.0",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {
@@ -16,13 +16,14 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/bitfocus/companion-module-your-module-name.git"
+		"url": "git+https://github.com/bitfocus/companion-module-calrec-cscp.git"
 	},
 	"engines": {
 		"node": "^22.14",
 		"yarn": "^4"
 	},
 	"dependencies": {
+		"@bitfocusas/calrec-cscp": "github:bitfocus/node-calrec-cscp",
 		"@companion-module/base": "~1.11.3"
 	},
 	"devDependencies": {

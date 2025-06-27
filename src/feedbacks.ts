@@ -1,33 +1,54 @@
-import { combineRgb } from '@companion-module/base'
-import type { ModuleInstance } from './main.js'
+import type { CalrecInstance } from './main.js'
+import { CompanionFeedbackDefinitions, combineRgb } from '@companion-module/base'
+import { MAX_FADERS } from './variables.js'
 
-export function UpdateFeedbacks(self: ModuleInstance): void {
-	self.setFeedbackDefinitions({
-		ChannelState: {
-			name: 'Example Feedback',
+export function GetFeedbacks(instance: CalrecInstance): CompanionFeedbackDefinitions {
+	return {
+		fader_cut_state: {
 			type: 'boolean',
+			name: 'Fader Cut State',
+			description: 'Change style if a fader is cut (muted)',
 			defaultStyle: {
+				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(255, 0, 0),
-				color: combineRgb(0, 0, 0),
 			},
 			options: [
 				{
-					id: 'num',
 					type: 'number',
-					label: 'Test',
-					default: 5,
+					label: 'Fader ID',
+					id: 'faderId',
+					default: 0,
 					min: 0,
-					max: 10,
+					max: MAX_FADERS,
 				},
 			],
 			callback: (feedback) => {
-				console.log('Hello world!', feedback.options.num)
-				if (Number(feedback.options.num) > 5) {
-					return true
-				} else {
-					return false
-				}
+				const faderId = Number(feedback.options.faderId)
+				return instance.faderStates.get(faderId)?.isCut ?? false
 			},
 		},
-	})
+		fader_pfl_state: {
+			type: 'boolean',
+			name: 'Fader PFL State',
+			description: 'Change style if a fader has PFL active',
+			defaultStyle: {
+				color: combineRgb(0, 0, 0),
+				bgcolor: combineRgb(255, 255, 0),
+			},
+			options: [
+				{
+					type: 'number',
+					label: 'Fader ID',
+					id: 'faderId',
+					default: 0,
+					min: 0,
+					max: MAX_FADERS,
+				},
+			],
+			callback: (feedback) => {
+				const faderId = Number(feedback.options.faderId)
+				return instance.faderStates.get(faderId)?.isPfl ?? false
+			},
+		},
+	}
 }
