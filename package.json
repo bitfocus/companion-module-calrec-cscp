@@ -1,6 +1,6 @@
 {
 	"name": "calrec-cscp",
-	"version": "1.1.1",
+	"version": "1.1.2",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {
@@ -20,8 +20,7 @@
 		"url": "git+https://github.com/bitfocus/companion-module-calrec-cscp.git"
 	},
 	"engines": {
-		"node": "^22.14",
-		"yarn": "^4"
+		"node": "^22.14"
 	},
 	"dependencies": {
 		"@bitfocusas/calrec-cscp": "github:bitfocus/node-calrec-cscp",
