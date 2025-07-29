@@ -1,8 +1,8 @@
 import type { CalrecInstance } from './main.js'
-import { CompanionFeedbackDefinitions, combineRgb } from '@companion-module/base'
-import { MAX_FADERS } from './variables.js'
+import { type CompanionFeedbackDefinitions, combineRgb } from '@companion-module/base'
 
 export function GetFeedbacks(instance: CalrecInstance): CompanionFeedbackDefinitions {
+	const maxFaders = instance.config?.maxFaderCount ?? 128
 	return {
 		fader_cut_state: {
 			type: 'boolean',
@@ -17,14 +17,15 @@ export function GetFeedbacks(instance: CalrecInstance): CompanionFeedbackDefinit
 					type: 'number',
 					label: 'Fader ID',
 					id: 'faderId',
-					default: 0,
-					min: 0,
-					max: MAX_FADERS,
+					default: 1,
+					min: 1,
+					max: maxFaders + 1,
 				},
 			],
 			callback: (feedback) => {
-				const faderId = Number(feedback.options.faderId)
-				return instance.faderStates.get(faderId)?.isCut ?? false
+				const faderId = (feedback.options.faderId as number) - 1 // Convert from UI (1-based) to library (0-based)
+				const state = instance.faderStates.get(faderId)
+				return state ? state.isCut : false
 			},
 		},
 		fader_pfl_state: {
@@ -40,14 +41,15 @@ export function GetFeedbacks(instance: CalrecInstance): CompanionFeedbackDefinit
 					type: 'number',
 					label: 'Fader ID',
 					id: 'faderId',
-					default: 0,
-					min: 0,
-					max: MAX_FADERS,
+					default: 1,
+					min: 1,
+					max: maxFaders + 1,
 				},
 			],
 			callback: (feedback) => {
-				const faderId = Number(feedback.options.faderId)
-				return instance.faderStates.get(faderId)?.isPfl ?? false
+				const faderId = (feedback.options.faderId as number) - 1 // Convert from UI (1-based) to library (0-based)
+				const state = instance.faderStates.get(faderId)
+				return state ? state.isPfl : false
 			},
 		},
 	}
