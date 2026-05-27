@@ -1,6 +1,6 @@
 {
 	"name": "calrec-cscp",
-	"version": "1.1.4",
+	"version": "1.2.0",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {
