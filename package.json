@@ -23,7 +23,7 @@
 		"node": "^22.14"
 	},
 	"dependencies": {
-		"@bitfocusas/calrec-cscp": "^1.2.3",
+		"@bitfocusas/calrec-cscp": "^1.2.4",
 		"@companion-module/base": "~1.11.3"
 	},
 	"devDependencies": {

@@ -56,10 +56,10 @@
   resolved "https://registry.yarnpkg.com/@biomejs/cli-win32-x64/-/cli-win32-x64-1.9.4.tgz#4c7afa90e3970213599b4095e62f87e5972b2340"
   integrity sha512-8Y5wMhVIPaWe6jw2H+KlEm4wP/f7EW3810ZLmDlrEEy5KvBsb9ECEfu/kMWD484ijfQ8+nIi0giMgu9g1UAuuA==
 
-"@bitfocusas/calrec-cscp@^1.2.3":
-  version "1.2.3"
-  resolved "https://registry.yarnpkg.com/@bitfocusas/calrec-cscp/-/calrec-cscp-1.2.3.tgz#1b34a7302f7765d88320c668b7e570ef16bf7aa9"
-  integrity sha512-UM1DbEzT1McFid8+kFNWofbwCHs88bxEtdNG+9n+o3pZ2CJ9CBy8/dfW8UW49qj5FXbVz4DM3rOXyISf5i9oBA==
+"@bitfocusas/calrec-cscp@^1.2.4":
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/@bitfocusas/calrec-cscp/-/calrec-cscp-1.2.4.tgz#b4345c68eef5b95a6e16547540cefbb28620c484"
+  integrity sha512-kcAqYv7fU1ZWtYrbwEr+82k0iinB3FsIpXtrd9U5XCtdUcja5Whcc1BM6q0KEqWevbV3KGY/fAYAVvndQ4UsvQ==
   dependencies:
     ts-node "^10.9.2"
     typescript "^5.8.3"
