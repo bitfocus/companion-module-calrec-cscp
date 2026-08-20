@@ -113,10 +113,10 @@ class FaderLevelWriter {
 				const sentLevel = target.level
 				try {
 					await this.client.setFaderLevel(faderId, sentLevel)
-					this.log(
-						'debug',
-						`Set fader ${faderId + 1} level to ${sentLevel} (${formatDb(target.desiredDb)} dB)`,
-					)
+					// this.log(
+					// 	'debug',
+					// 	`Set fader ${faderId + 1} level to ${sentLevel} (${formatDb(target.desiredDb)} dB)`,
+					// )
 				} catch (error: unknown) {
 					this.log('error', `Failed to set fader ${faderId + 1} level: ${describeError(error)}`)
 					this.targets.delete(faderId)
@@ -287,7 +287,7 @@ export class CalrecApi {
 			await client.setFaderCut(faderId, isCut)
 			// Optimistic: the console may only ACK without echoing a change event.
 			this.applyFaderCut(faderId, isCut)
-			this.host.log('debug', `Set fader ${faderId + 1} cut to ${isCut}`)
+			// this.host.log('debug', `Set fader ${faderId + 1} cut to ${isCut}`)
 		} catch (error: unknown) {
 			this.host.log('error', `Failed to set fader ${faderId + 1} cut: ${describeError(error)}`)
 		}
@@ -303,7 +303,7 @@ export class CalrecApi {
 			await client.setFaderPfl(faderId, isPfl)
 			// Optimistic: the console may only ACK without echoing a change event.
 			this.applyFaderPfl(faderId, isPfl)
-			this.host.log('debug', `Set fader ${faderId + 1} PFL to ${isPfl}`)
+			// this.host.log('debug', `Set fader ${faderId + 1} PFL to ${isPfl}`)
 		} catch (error: unknown) {
 			this.host.log('error', `Failed to set fader ${faderId + 1} PFL: ${describeError(error)}`)
 		}
@@ -322,7 +322,7 @@ export class CalrecApi {
 		const isPfl = resolveToggle(state, null)
 		try {
 			await client.setMainFaderPfl(mainId, isPfl)
-			this.host.log('debug', `Set main fader ${mainId + 1} PFL to ${isPfl}`)
+			// this.host.log('debug', `Set main fader ${mainId + 1} PFL to ${isPfl}`)
 		} catch (error: unknown) {
 			this.host.log('error', `Failed to set main fader ${mainId + 1} PFL: ${describeError(error)}`)
 		}
@@ -340,7 +340,7 @@ export class CalrecApi {
 
 		try {
 			await client.setMainFaderLevelDb(mainId, levelDb)
-			this.host.log('debug', `Set main fader ${mainId + 1} level to ${formatDb(levelDb)} dB`)
+			// this.host.log('debug', `Set main fader ${mainId + 1} level to ${formatDb(levelDb)} dB`)
 		} catch (error: unknown) {
 			this.host.log('error', `Failed to set main fader ${mainId + 1} level: ${describeError(error)}`)
 		}
@@ -423,13 +423,13 @@ export class CalrecApi {
 
 		on('faderCutChange', (faderId, isCut) => {
 			this.noteFloodActivity()
-			this.logLiveChange(`Fader ${faderId + 1} cut state changed to ${isCut}`)
+			// this.logLiveChange(`Fader ${faderId + 1} cut state changed to ${isCut}`)
 			this.applyFaderCut(faderId, isCut)
 		})
 
 		on('faderPflChange', (faderId, isPfl) => {
 			this.noteFloodActivity()
-			this.logLiveChange(`Fader ${faderId + 1} PFL state changed to ${isPfl}`)
+			// this.logLiveChange(`Fader ${faderId + 1} PFL state changed to ${isPfl}`)
 			this.applyFaderPfl(faderId, isPfl)
 		})
 
@@ -534,10 +534,10 @@ export class CalrecApi {
 		if (!this.initialSyncComplete) this.lastFloodActivityAt = Date.now()
 	}
 
-	/** Per-change debug logging, suppressed during the noisy connect flood. */
-	private logLiveChange(message: string): void {
-		if (this.initialSyncComplete) this.host.log('debug', message)
-	}
+	// /** Per-change debug logging, suppressed during the noisy connect flood. */
+	// private logLiveChange(message: string): void {
+	// 	if (this.initialSyncComplete) this.host.log('debug', message)
+	// }
 
 	// --- Inbound state -------------------------------------------------------
 
@@ -551,7 +551,7 @@ export class CalrecApi {
 		const displayDb =
 			targetDb !== undefined && Math.abs(echoedDb - targetDb) <= DB_DISPLAY_SNAP_DB ? targetDb : echoedDb
 
-		this.logLiveChange(`Fader ${faderId + 1} level changed to ${level} (${formatDb(displayDb)} dB)`)
+		// this.logLiveChange(`Fader ${faderId + 1} level changed to ${level} (${formatDb(displayDb)} dB)`)
 		this.applyFaderLevel(faderId, level, displayDb)
 	}
 
@@ -582,7 +582,7 @@ export class CalrecApi {
 	}
 
 	private applyFaderLabel(faderId: number, label: string): void {
-		this.logLiveChange(`Fader ${faderId + 1} label changed to ${JSON.stringify(label)}`)
+		// this.logLiveChange(`Fader ${faderId + 1} label changed to ${JSON.stringify(label)}`)
 		this.getOrInitFaderState(faderId).label = label
 		this.host.setVariable(faderVariableId(faderId, 'label'), label)
 	}
