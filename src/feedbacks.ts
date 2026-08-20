@@ -1,8 +1,15 @@
+import { combineRgb, type CompanionFeedbackDefinitions, type CompanionInputFieldNumber } from '@companion-module/base'
 import type { CalrecInstance } from './main.js'
-import { type CompanionFeedbackDefinitions, combineRgb } from '@companion-module/base'
+import { faderIdOption, readFaderId } from './options.js'
 
 export function GetFeedbacks(instance: CalrecInstance): CompanionFeedbackDefinitions {
-	const maxFaders = instance.config?.maxFaderCount ?? 128
+	// Feedbacks only offer faders this console actually has; definitions are rebuilt
+	// whenever the effective count changes.
+	const faderPicker: CompanionInputFieldNumber = {
+		...faderIdOption(),
+		max: Math.max(1, instance.api.getMaxFaderCount()),
+	}
+
 	return {
 		fader_cut_state: {
 			type: 'boolean',
@@ -12,21 +19,8 @@ export function GetFeedbacks(instance: CalrecInstance): CompanionFeedbackDefinit
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(255, 0, 0),
 			},
-			options: [
-				{
-					type: 'number',
-					label: 'Fader ID',
-					id: 'faderId',
-					default: 1,
-					min: 1,
-					max: maxFaders + 1,
-				},
-			],
-			callback: (feedback) => {
-				const faderId = (feedback.options.faderId as number) - 1 // Convert from UI (1-based) to library (0-based)
-				const state = instance.faderStates.get(faderId)
-				return state ? state.isCut : false
-			},
+			options: [faderPicker],
+			callback: ({ options }) => instance.api.isFaderCut(readFaderId(options)),
 		},
 		fader_pfl_state: {
 			type: 'boolean',
@@ -36,21 +30,9 @@ export function GetFeedbacks(instance: CalrecInstance): CompanionFeedbackDefinit
 				color: combineRgb(0, 0, 0),
 				bgcolor: combineRgb(255, 255, 0),
 			},
-			options: [
-				{
-					type: 'number',
-					label: 'Fader ID',
-					id: 'faderId',
-					default: 1,
-					min: 1,
-					max: maxFaders + 1,
-				},
-			],
-			callback: (feedback) => {
-				const faderId = (feedback.options.faderId as number) - 1 // Convert from UI (1-based) to library (0-based)
-				const state = instance.faderStates.get(faderId)
-				return state ? state.isPfl : false
-			},
+			options: [faderPicker],
+			// Unknown PFL reads as inactive; the desk only reports PFL when it changes.
+			callback: ({ options }) => instance.api.getFaderPfl(readFaderId(options)) === true,
 		},
 	}
 }

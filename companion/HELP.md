@@ -7,6 +7,13 @@ This module provides integration with Calrec audio consoles using the CSCP (Calr
 - **Target IP**: The IP address of your Calrec console
 - **Target Port**: The port number for CSCP communication (default: 23)
 
+### Connection Status
+
+A network outage does not close the TCP connection, so the module keeps the link honest by
+probing the console whenever it has gone quiet. If the console does not answer, the connection
+goes to **Disconnected / Reconnecting** within about 6 seconds and the module retries until the
+console is reachable again.
+
 ### Actions
 
 - **Set Fader Cut**: Toggle or set the cut (mute) state of a fader
@@ -26,8 +33,13 @@ The module provides variables for each fader (1-256):
 - `fader_X_level`: Current fader level (0-1023)
 - `fader_X_level_db`: Current fader level in dB
 - `fader_X_label`: Fader label
-- `fader_X_pfl`: PFL state (On/Off)
-- `fader_X_cut`: Cut state (Cut/On)
+- `fader_X_pfl`: PFL state (On/Off, or Unknown — see below)
+- `fader_X_cut`: Cut state (On/Off)
+
+The console reports PFL only when it changes, and answers a PFL state request with "off" no
+matter what the fader is really doing. PFL therefore starts as `Unknown` after connecting and
+becomes accurate as soon as that fader's PFL is switched. The PFL feedback treats `Unknown` as
+inactive.
 
 ### Presets
 
