@@ -377,9 +377,7 @@ export class CalrecApi {
 	/** dB a relative step starts from: the in-flight target, else the last settled value. */
 	private getTargetDb(faderId: number): number {
 		return (
-			this.levelWriter?.getDesiredDb(faderId) ??
-			this.faderStates.get(faderId)?.levelDbValue ??
-			CHANNEL_FADER_MIN_DB
+			this.levelWriter?.getDesiredDb(faderId) ?? this.faderStates.get(faderId)?.levelDbValue ?? CHANNEL_FADER_MIN_DB
 		)
 	}
 
@@ -491,10 +489,7 @@ export class CalrecApi {
 			if (this.faderStates.size > 0 && now - this.lastFloodActivityAt >= INITIAL_FLOOD_QUIET_MS) return
 			if (now - startedAt >= INITIAL_FLOOD_MAX_MS) {
 				if (this.faderStates.size === 0) {
-					this.host.log(
-						'warn',
-						`No console state within ${INITIAL_FLOOD_MAX_MS}ms; continuing with empty cache`,
-					)
+					this.host.log('warn', `No console state within ${INITIAL_FLOOD_MAX_MS}ms; continuing with empty cache`)
 				}
 				return
 			}
@@ -548,10 +543,7 @@ export class CalrecApi {
 		this.lastPublishedFaderCount = effective
 
 		const reported = this.detectedFaderCount ?? 'unknown'
-		this.host.log(
-			'info',
-			`Using ${effective} faders (console reported=${reported}, seen=${this.observedFaderCount})`,
-		)
+		this.host.log('info', `Using ${effective} faders (console reported=${reported}, seen=${this.observedFaderCount})`)
 		this.host.onFaderCountChanged(effective)
 	}
 

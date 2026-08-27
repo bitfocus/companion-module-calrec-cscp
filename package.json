@@ -11,8 +11,8 @@
 		"build:main": "tsc -p tsconfig.build.json",
 		"build:all": "(cd node-calrec-cscp && npm run build && cd .. && yarn build) 2>&1",
 		"dev": "tsc -p tsconfig.build.json --watch",
-		"lint": "npx @biomejs/biome check ./src",
-		"lint:fix": "npx @biomejs/biome check --write ./src"
+		"lint:raw": "eslint",
+		"lint": "yarn lint:raw ."
 	},
 	"license": "MIT",
 	"repository": {
@@ -29,9 +29,9 @@
 		"@companion-module/base": "~1.12.1"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
 		"@companion-module/tools": "^2.7.2",
 		"@types/node": "^22.20.1",
+		"eslint": "^9.39.3",
 		"husky": "^9.1.7",
 		"lint-staged": "^15.5.2",
 		"prettier": "^3.9.6",
@@ -42,10 +42,10 @@
 	"prettier": "@companion-module/tools/.prettierrc.json",
 	"lint-staged": {
 		"*.{css,json,md,scss}": [
-			"npm run lint:fix"
+			"prettier --write"
 		],
 		"*.{ts,tsx,js,jsx}": [
-			"npm run lint:fix"
+			"yarn lint:raw --fix"
 		]
 	}
 }
