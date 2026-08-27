@@ -37,11 +37,11 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			type: 'number',
 			id: 'maxFaderCount',
 			label: 'Fallback Fader Count',
-			tooltip: 'Fallback fader count if the console does not report one.',
+			tooltip: 'Only used until the console reports its faders, can be used for offline setup.',
 			width: 4,
 			default: 128,
 			min: 1,
-			max: 128,
+			max: 192,
 		},
 		/* {
 			type: 'checkbox',

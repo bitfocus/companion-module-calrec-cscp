@@ -2,6 +2,9 @@
 
 /** Used when the user has not set a fader limit; also the maximum the config field allows. */
 export const DEFAULT_MAX_FADER_COUNT = 128
+
+/** Highest fader count the CSCP protocol addresses; the library validates writes against it. */
+export const MAX_PROTOCOL_FADER_COUNT = 192
 /** Highest fader id a button may address, independent of what any one console reports. */
 export const MAX_ADDRESSABLE_FADER_COUNT = 256
 /** The protocol defines 16 main buses; there is no config field for this. */
