@@ -13,7 +13,7 @@ export function formatDb(db: number): string {
 
 /** Strip NULs/control chars; keep leading spaces (they are part of the desk label). */
 export function sanitizeFaderLabel(label: string): string {
-	// biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point
+	// eslint-disable-next-line no-control-regex -- matching control characters is the point
 	return label.replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+$/, '')
 }
 
@@ -26,6 +26,6 @@ export function clampToInteger(value: number, min: number, max: number): number 
 	return clamp(Math.round(value), min, max)
 }
 
-export function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms))
+export async function sleep(ms: number): Promise<void> {
+	await new Promise((resolve) => setTimeout(resolve, ms))
 }

@@ -123,9 +123,7 @@ export function GetPresets(instance: CalrecInstance): {
 				color: COLOR_WHITE,
 				bgcolor: COLOR_BLACK,
 			},
-			feedbacks: [
-				{ feedbackId: 'fader_pfl_state', options: { faderId: faderNumber }, style: { bgcolor: COLOR_PFL } },
-			],
+			feedbacks: [{ feedbackId: 'fader_pfl_state', options: { faderId: faderNumber }, style: { bgcolor: COLOR_PFL } }],
 			steps: [
 				{
 					down: [{ actionId: 'set_fader_pfl_unified', options: { faderId: faderNumber, state: 'toggle' } }],
@@ -144,9 +142,7 @@ export function GetPresets(instance: CalrecInstance): {
 				color: COLOR_WHITE,
 				bgcolor: COLOR_BLACK,
 			},
-			feedbacks: [
-				{ feedbackId: 'fader_cut_state', options: { faderId: faderNumber }, style: { bgcolor: COLOR_CUT } },
-			],
+			feedbacks: [{ feedbackId: 'fader_cut_state', options: { faderId: faderNumber }, style: { bgcolor: COLOR_CUT } }],
 			steps: [
 				{
 					down: [{ actionId: 'set_fader_cut_unified', options: { faderId: faderNumber, state: 'toggle' } }],

@@ -22,6 +22,7 @@ import {
 	INITIAL_FLOOD_POLL_MS,
 	INITIAL_FLOOD_QUIET_MS,
 	MAX_MAIN_COUNT,
+	MAX_PROTOCOL_FADER_COUNT,
 	MAX_PROTOCOL_LEVEL,
 	MIN_PROTOCOL_LEVEL,
 } from './constants.js'
@@ -161,8 +162,12 @@ export class CalrecApi {
 
 	/** Bumped on reconnect/teardown so an in-flight ready sync can abort. */
 	private connectionGeneration = 0
-	/** From console info when available; used to cap the configured maxFaderCount. */
+	/** From console info when available; combined with {@link observedFaderCount}. */
 	private detectedFaderCount: number | null = null
+	/** Highest fader id the console has actually pushed state for, as a count. */
+	private observedFaderCount = 0
+	/** Last count handed to the host, so definitions are only rebuilt on a real change. */
+	private lastPublishedFaderCount = 0
 	/** After ready sync dumps full state once; live change logs only fire after that. */
 	private initialSyncComplete = false
 	/** Last inbound push during the connect flood; used to detect when it has settled. */
@@ -189,7 +194,9 @@ export class CalrecApi {
 			{
 				host: config.host,
 				port: config.port,
-				maxFaderCount: config.maxFaderCount ?? DEFAULT_MAX_FADER_COUNT,
+				// The protocol ceiling, not the fallback: the library rejects writes past this,
+				// and the console's real fader count is only known once it has answered.
+				maxFaderCount: MAX_PROTOCOL_FADER_COUNT,
 				maxMainCount: MAX_MAIN_COUNT,
 			},
 			{
@@ -230,19 +237,26 @@ export class CalrecApi {
 
 		this.faderStates.clear()
 		this.detectedFaderCount = null
+		this.observedFaderCount = 0
+		this.lastPublishedFaderCount = 0
 		this.initialSyncComplete = false
 		this.lastFloodActivityAt = 0
 	}
 
 	// --- Cached console state ------------------------------------------------
 
-	/** Effective fader count: the configured maximum, capped by the console's own count. */
+	/**
+	 * Effective fader count, from the console whenever it has told us anything.
+	 *
+	 * Consoles under-report `maxFaders` in console info (a desk that answers 96 can still
+	 * push state for fader 192), so the reported count is only a floor - any higher fader
+	 * the desk actually addresses widens it. The configured count is a fallback for when
+	 * the console has said nothing at all, not a cap.
+	 */
 	getMaxFaderCount(): number {
-		const configured = this.config?.maxFaderCount ?? DEFAULT_MAX_FADER_COUNT
-		if (this.detectedFaderCount !== null && this.detectedFaderCount > 0) {
-			return Math.min(configured, this.detectedFaderCount)
-		}
-		return configured
+		const available = Math.max(this.detectedFaderCount ?? 0, this.observedFaderCount)
+		if (available > 0) return Math.min(available, MAX_PROTOCOL_FADER_COUNT)
+		return this.config?.maxFaderCount ?? DEFAULT_MAX_FADER_COUNT
 	}
 
 	/** Last known cut state. A fader the console has not reported reads as uncut. */
@@ -363,9 +377,7 @@ export class CalrecApi {
 	/** dB a relative step starts from: the in-flight target, else the last settled value. */
 	private getTargetDb(faderId: number): number {
 		return (
-			this.levelWriter?.getDesiredDb(faderId) ??
-			this.faderStates.get(faderId)?.levelDbValue ??
-			CHANNEL_FADER_MIN_DB
+			this.levelWriter?.getDesiredDb(faderId) ?? this.faderStates.get(faderId)?.levelDbValue ?? CHANNEL_FADER_MIN_DB
 		)
 	}
 
@@ -455,6 +467,7 @@ export class CalrecApi {
 
 		await this.resolveFaderCount(client, isCurrent)
 		if (!isCurrent()) return
+		this.publishFaderCount()
 
 		// One feedback pass after the flood instead of per-fader storms.
 		this.host.checkFeedbacks('fader_cut_state', 'fader_pfl_state')
@@ -476,10 +489,7 @@ export class CalrecApi {
 			if (this.faderStates.size > 0 && now - this.lastFloodActivityAt >= INITIAL_FLOOD_QUIET_MS) return
 			if (now - startedAt >= INITIAL_FLOOD_MAX_MS) {
 				if (this.faderStates.size === 0) {
-					this.host.log(
-						'warn',
-						`No console state within ${INITIAL_FLOOD_MAX_MS}ms; continuing with empty cache`,
-					)
+					this.host.log('warn', `No console state within ${INITIAL_FLOOD_MAX_MS}ms; continuing with empty cache`)
 				}
 				return
 			}
@@ -506,12 +516,6 @@ export class CalrecApi {
 				`Could not read console fader count, using configured max ${this.getMaxFaderCount()}: ${describeError(error)}`,
 			)
 		}
-
-		if (!isCurrent() || this.faderStates.size === 0) return
-
-		const inferredCount = Math.max(...this.faderStates.keys()) + 1
-		this.host.log('debug', `Inferring fader count ${inferredCount} from console flood`)
-		this.applyDetectedFaderCount(inferredCount)
 	}
 
 	private applyCachedConsoleInfo(client: CalrecClient): void {
@@ -521,11 +525,25 @@ export class CalrecApi {
 
 	private applyDetectedFaderCount(count: number): void {
 		if (count < 1 || this.detectedFaderCount === count) return
-
 		this.detectedFaderCount = count
+	}
+
+	/** Record a fader the console addressed, widening the count if it sits past the current one. */
+	private noteObservedFader(faderId: number): void {
+		if (faderId + 1 <= this.observedFaderCount) return
+		this.observedFaderCount = faderId + 1
+		// During the connect flood the count is published once, after the burst settles.
+		if (this.initialSyncComplete) this.publishFaderCount()
+	}
+
+	/** Hand the current effective count to the host, once per actual change. */
+	private publishFaderCount(): void {
 		const effective = this.getMaxFaderCount()
-		const configured = this.config?.maxFaderCount ?? DEFAULT_MAX_FADER_COUNT
-		this.host.log('info', `Using ${effective} faders (console=${count}, configured max=${configured})`)
+		if (effective === this.lastPublishedFaderCount) return
+		this.lastPublishedFaderCount = effective
+
+		const reported = this.detectedFaderCount ?? 'unknown'
+		this.host.log('info', `Using ${effective} faders (console reported=${reported}, seen=${this.observedFaderCount})`)
 		this.host.onFaderCountChanged(effective)
 	}
 
@@ -590,6 +608,7 @@ export class CalrecApi {
 	private getOrInitFaderState(faderId: number): FaderState {
 		let state = this.faderStates.get(faderId)
 		if (!state) {
+			this.noteObservedFader(faderId)
 			state = {
 				level: MIN_PROTOCOL_LEVEL,
 				levelDbValue: CHANNEL_FADER_MIN_DB,
