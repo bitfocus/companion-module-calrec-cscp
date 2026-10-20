@@ -20,6 +20,11 @@ console is reachable again.
 - **Set Fader PFL**: Toggle or set the PFL (Pre-Fade Listen) state of a fader
 - **Set Fader Level**: Set the fader level using the 0-1023 range
 - **Set Fader Level (dB)**: Set the fader level using dB values
+- **Fader Level Up / Down (dB)**: Nudge a fader by a step in dB
+- **Fade Fader (Timed)**: Fade a fader to a level, or up/down by an amount, either at a fixed rate (dB per second) or over a fixed duration. The action returns as soon as the fade starts, so to run something after the fade, follow it with an internal wait of the fade's length.
+- **Stop Fader Fade**: Stop a running fade where it is
+
+Starting a new fade, setting or nudging the level of the same fader stops any fade already running on it. Moving the fader by hand on the desk does not, so use **Stop Fader Fade** if you need to take over mid-fade.
 
 ### Feedbacks
 
