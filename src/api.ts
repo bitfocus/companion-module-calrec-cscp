@@ -14,6 +14,7 @@ import {
 	COMMAND_RESPONSE_TIMEOUT_MS,
 	DB_DISPLAY_SNAP_DB,
 	DEFAULT_MAX_FADER_COUNT,
+	FADE_TICK_MS,
 	FADER_LEVEL_RATE_MS,
 	FADER_LEVEL_SETTLE_MS,
 	HEARTBEAT_INTERVAL_MS,
@@ -26,7 +27,7 @@ import {
 	MAX_PROTOCOL_LEVEL,
 	MIN_PROTOCOL_LEVEL,
 } from './constants.js'
-import type { ToggleState } from './options.js'
+import type { FadeSpeedMode, FadeTargetMode, ToggleState } from './options.js'
 import { clamp, clampToInteger, describeError, formatDb, sanitizeFaderLabel, sleep } from './util.js'
 import { faderVariableId, type VariableValue } from './variables.js'
 
@@ -153,12 +154,52 @@ class FaderLevelWriter {
 	}
 }
 
+/**
+ * Runs timed fades, one per fader, by feeding interpolated dB targets to the level writer.
+ *
+ * Interpolation is linear in dB (so a dB/s rate means what it says) and driven by wall-clock
+ * time, so a slow tick never stretches the fade.
+ */
+class FaderFadeRunner {
+	private readonly timers = new Map<number, ReturnType<typeof setInterval>>()
+
+	constructor(private readonly write: (faderId: number, levelDb: number) => void) {}
+
+	start(faderId: number, startDb: number, targetDb: number, durationMs: number): void {
+		this.cancel(faderId)
+		if (durationMs <= 0 || startDb === targetDb) {
+			this.write(faderId, targetDb)
+			return
+		}
+
+		const startedAt = Date.now()
+		const timer = setInterval(() => {
+			const progress = Math.min(1, (Date.now() - startedAt) / durationMs)
+			this.write(faderId, startDb + (targetDb - startDb) * progress)
+			if (progress >= 1) this.cancel(faderId)
+		}, FADE_TICK_MS)
+		this.timers.set(faderId, timer)
+	}
+
+	/** Stop a fade where it is. */
+	cancel(faderId: number): void {
+		clearInterval(this.timers.get(faderId))
+		this.timers.delete(faderId)
+	}
+
+	cancelAll(): void {
+		for (const timer of this.timers.values()) clearInterval(timer)
+		this.timers.clear()
+	}
+}
+
 export class CalrecApi {
 	private readonly faderStates = new Map<number, FaderState>()
 
 	private config: CalrecConfig | null = null
 	private client: CalrecClient | null = null
 	private levelWriter: FaderLevelWriter | null = null
+	private fadeRunner: FaderFadeRunner | null = null
 
 	/** Bumped on reconnect/teardown so an in-flight ready sync can abort. */
 	private connectionGeneration = 0
@@ -208,6 +249,7 @@ export class CalrecApi {
 		)
 		this.client = client
 		this.levelWriter = new FaderLevelWriter(client, (level, message) => this.host.log(level, message))
+		this.fadeRunner = new FaderFadeRunner((faderId, levelDb) => this.writeFaderLevelDb(faderId, levelDb))
 		this.registerEventListeners(client)
 
 		// Not awaited: a TCP connect to an unreachable host can outlast Companion's init timeout.
@@ -224,6 +266,8 @@ export class CalrecApi {
 	 */
 	disconnect(): void {
 		this.connectionGeneration++
+		this.fadeRunner?.cancelAll()
+		this.fadeRunner = null
 		this.levelWriter?.cancelAll()
 		this.levelWriter = null
 
@@ -273,14 +317,15 @@ export class CalrecApi {
 
 	/** Queue an absolute protocol-level write; variables update when the console echoes. */
 	setFaderLevel(faderId: number, level: number): void {
+		this.fadeRunner?.cancel(faderId)
 		const clamped = clampToInteger(level, MIN_PROTOCOL_LEVEL, MAX_PROTOCOL_LEVEL)
 		this.queueLevelWrite(faderId, clamped, channelLevelToDb(clamped))
 	}
 
 	/** Queue an absolute dB write; variables update when the console echoes. */
 	setFaderLevelDb(faderId: number, levelDb: number): void {
-		const desiredDb = clamp(levelDb, CHANNEL_FADER_MIN_DB, CHANNEL_FADER_MAX_DB)
-		this.queueLevelWrite(faderId, dbToChannelLevel(desiredDb), desiredDb)
+		this.fadeRunner?.cancel(faderId)
+		this.writeFaderLevelDb(faderId, levelDb)
 	}
 
 	/**
@@ -289,6 +334,40 @@ export class CalrecApi {
 	 */
 	adjustFaderLevelDb(faderId: number, deltaDb: number): void {
 		this.setFaderLevelDb(faderId, this.getTargetDb(faderId) + deltaDb)
+	}
+
+	/**
+	 * Fade to an absolute level or by a relative amount, at a dB/s rate or over a fixed duration.
+	 * Replaces any fade already running on the fader. Returns once the fade has started: Companion
+	 * times out action calls after a few seconds, so callers must not wait for it to finish.
+	 */
+	fadeFaderLevelDb(
+		faderId: number,
+		target: { mode: FadeTargetMode; db: number },
+		speed: { mode: FadeSpeedMode; value: number },
+	): void {
+		// Checked against the live state, not just the client: a fade started while reconnecting
+		// would otherwise log a failed write on every tick.
+		if (!this.fadeRunner || this.client?.getState().connectionState !== ConnectionState.CONNECTED) {
+			this.host.log('warn', `Ignoring fade for fader ${faderId + 1}: not connected to a console`)
+			return
+		}
+
+		const startDb = this.getTargetDb(faderId)
+		const targetDb = clamp(
+			target.mode === 'absolute' ? target.db : startDb + target.db,
+			CHANNEL_FADER_MIN_DB,
+			CHANNEL_FADER_MAX_DB,
+		)
+		let durationMs = 0
+		if (speed.mode === 'duration') durationMs = speed.value * 1000
+		else if (speed.value > 0) durationMs = (Math.abs(targetDb - startDb) / speed.value) * 1000
+
+		this.fadeRunner.start(faderId, startDb, targetDb, durationMs)
+	}
+
+	stopFaderFade(faderId: number): void {
+		this.fadeRunner?.cancel(faderId)
 	}
 
 	/** Set cut on the console, optimistically reflecting the new state locally. */
@@ -366,6 +445,11 @@ export class CalrecApi {
 		return null
 	}
 
+	private writeFaderLevelDb(faderId: number, levelDb: number): void {
+		const desiredDb = clamp(levelDb, CHANNEL_FADER_MIN_DB, CHANNEL_FADER_MAX_DB)
+		this.queueLevelWrite(faderId, dbToChannelLevel(desiredDb), desiredDb)
+	}
+
 	private queueLevelWrite(faderId: number, level: number, desiredDb: number): void {
 		if (!this.levelWriter) {
 			this.host.log('warn', `Ignoring level for fader ${faderId + 1}: not connected to a console`)
@@ -406,6 +490,7 @@ export class CalrecApi {
 		on('disconnect', () => {
 			this.host.log('warn', 'Disconnected from Calrec console')
 			this.connectionGeneration++
+			this.fadeRunner?.cancelAll()
 			this.levelWriter?.cancelAll()
 			this.host.updateStatus(InstanceStatus.Disconnected)
 		})

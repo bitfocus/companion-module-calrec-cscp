@@ -1,14 +1,25 @@
 import type { CompanionActionDefinitions } from '@companion-module/base'
 import type { CalrecInstance } from './main.js'
 import {
+	DEFAULT_FADE_DELTA_DB,
+	DEFAULT_FADE_DURATION_SEC,
+	DEFAULT_FADE_RATE_DB_PER_SEC,
 	DEFAULT_LEVEL_DB,
 	DEFAULT_PROTOCOL_LEVEL,
 	DEFAULT_STEP_DB,
+	fadeDeltaDbOption,
+	fadeDurationOption,
+	fadeLevelDbOption,
+	fadeRateOption,
 	faderIdOption,
+	fadeSpeedModeOption,
+	fadeTargetModeOption,
 	isMainOption,
 	levelDbOption,
 	protocolLevelOption,
 	readBoolean,
+	readFadeSpeedMode,
+	readFadeTargetMode,
 	readFaderId,
 	readNumber,
 	readToggleState,
@@ -88,6 +99,48 @@ export function GetActions(instance: CalrecInstance): CompanionActionDefinitions
 			callback: ({ options }) => {
 				// Queued — the send, and any failure, is logged when it goes out.
 				instance.api.adjustFaderLevelDb(readFaderId(options), -readNumber(options, 'stepDb', DEFAULT_STEP_DB))
+			},
+		},
+
+		fade_fader_level_db: {
+			name: 'Fade Fader (Timed)',
+			options: [
+				faderIdOption(),
+				fadeTargetModeOption(),
+				fadeLevelDbOption(),
+				fadeDeltaDbOption(),
+				fadeSpeedModeOption(),
+				fadeRateOption(),
+				fadeDurationOption(),
+			],
+			callback: ({ options }) => {
+				const targetMode = readFadeTargetMode(options)
+				const speedMode = readFadeSpeedMode(options)
+				instance.api.fadeFaderLevelDb(
+					readFaderId(options),
+					{
+						mode: targetMode,
+						db:
+							targetMode === 'absolute'
+								? readNumber(options, 'levelDb', DEFAULT_LEVEL_DB)
+								: readNumber(options, 'deltaDb', DEFAULT_FADE_DELTA_DB),
+					},
+					{
+						mode: speedMode,
+						value:
+							speedMode === 'rate'
+								? readNumber(options, 'rateDbPerSec', DEFAULT_FADE_RATE_DB_PER_SEC)
+								: readNumber(options, 'durationSec', DEFAULT_FADE_DURATION_SEC),
+					},
+				)
+			},
+		},
+
+		stop_fader_fade: {
+			name: 'Stop Fader Fade',
+			options: [faderIdOption()],
+			callback: ({ options }) => {
+				instance.api.stopFaderFade(readFaderId(options))
 			},
 		},
 	}

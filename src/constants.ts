@@ -34,6 +34,8 @@ export const FADER_LEVEL_RATE_MS = 25
 export const HEARTBEAT_INTERVAL_MS = 2000
 /** Detection takes interval × (misses + 1), so two misses ≈ 6s worst case. */
 export const HEARTBEAT_MAX_MISSES = 2
+/** Fade step interval; just above the level rate so each step can actually go out. */
+export const FADE_TICK_MS = 40
 /** Snap displayed dB to Companion's intended value when the console echo is this close. */
 export const DB_DISPLAY_SNAP_DB = 0.15
 

@@ -9,6 +9,10 @@
 	"bugs": "https://github.com/bitfocus/companion-module-calrec-cscp/issues",
 	"maintainers": [
 		{
+			"name": "Bitfocus AS",
+			"email": "connections@bitfocus.io"
+		},
+		{
 			"name": "William Viker",
 			"email": "william@bitfocus.io"
 		}

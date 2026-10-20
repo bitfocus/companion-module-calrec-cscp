@@ -18,13 +18,26 @@ export function isToggleState(value: unknown): value is ToggleState {
 	return typeof value === 'string' && (TOGGLE_STATES as readonly string[]).includes(value)
 }
 
+export const FADE_TARGET_MODES = ['absolute', 'relative'] as const
+export type FadeTargetMode = (typeof FADE_TARGET_MODES)[number]
+
+export const FADE_SPEED_MODES = ['rate', 'duration'] as const
+export type FadeSpeedMode = (typeof FADE_SPEED_MODES)[number]
+
 export const DEFAULT_FADER_NUMBER = 1
 export const DEFAULT_PROTOCOL_LEVEL = 768
 export const DEFAULT_LEVEL_DB = 0
 export const DEFAULT_STEP_DB = 1
+export const DEFAULT_FADE_DELTA_DB = -10
+export const DEFAULT_FADE_RATE_DB_PER_SEC = 5
+export const DEFAULT_FADE_DURATION_SEC = 3
 
 const MIN_STEP_DB = 0.1
 const MAX_STEP_DB = 10
+const MIN_FADE_RATE_DB_PER_SEC = 0.1
+const MAX_FADE_RATE_DB_PER_SEC = 200
+const MAX_FADE_DURATION_SEC = 600
+const FADE_DELTA_RANGE_DB = CHANNEL_FADER_MAX_DB - CHANNEL_FADER_MIN_DB
 
 export function faderIdOption(): CompanionInputFieldNumber {
 	return {
@@ -75,6 +88,72 @@ export function stepDbOption(): CompanionInputFieldNumber {
 	}
 }
 
+export function fadeTargetModeOption(): CompanionInputFieldDropdown {
+	return {
+		type: 'dropdown',
+		label: 'Target',
+		id: 'targetMode',
+		default: 'absolute',
+		choices: [
+			{ id: 'absolute', label: 'Fade to level' },
+			{ id: 'relative', label: 'Fade by amount' },
+		],
+	}
+}
+
+export function fadeLevelDbOption(): CompanionInputFieldNumber {
+	return { ...levelDbOption(), isVisibleExpression: `$(options:targetMode) == 'absolute'` }
+}
+
+export function fadeDeltaDbOption(): CompanionInputFieldNumber {
+	return {
+		type: 'number',
+		label: 'Amount (dB, negative fades down)',
+		id: 'deltaDb',
+		default: DEFAULT_FADE_DELTA_DB,
+		min: -FADE_DELTA_RANGE_DB,
+		max: FADE_DELTA_RANGE_DB,
+		isVisibleExpression: `$(options:targetMode) == 'relative'`,
+	}
+}
+
+export function fadeSpeedModeOption(): CompanionInputFieldDropdown {
+	return {
+		type: 'dropdown',
+		label: 'Speed',
+		id: 'speedMode',
+		default: 'rate',
+		choices: [
+			{ id: 'rate', label: 'Fixed rate (dB per second)' },
+			{ id: 'duration', label: 'Fixed duration (seconds)' },
+		],
+	}
+}
+
+export function fadeRateOption(): CompanionInputFieldNumber {
+	return {
+		type: 'number',
+		label: 'Rate (dB per second)',
+		id: 'rateDbPerSec',
+		default: DEFAULT_FADE_RATE_DB_PER_SEC,
+		min: MIN_FADE_RATE_DB_PER_SEC,
+		max: MAX_FADE_RATE_DB_PER_SEC,
+		isVisibleExpression: `$(options:speedMode) == 'rate'`,
+	}
+}
+
+export function fadeDurationOption(): CompanionInputFieldNumber {
+	return {
+		type: 'number',
+		label: 'Duration (seconds)',
+		id: 'durationSec',
+		default: DEFAULT_FADE_DURATION_SEC,
+		min: 0,
+		max: MAX_FADE_DURATION_SEC,
+		isVisibleExpression: `$(options:speedMode) == 'duration'`,
+	}
+}
+
 export function toggleStateOption(onLabel: string, offLabel: string): CompanionInputFieldDropdown {
 	return {
 		type: 'dropdown',
@@ -106,4 +185,12 @@ export function readBoolean(options: CompanionOptionValues, id: string): boolean
 export function readToggleState(options: CompanionOptionValues, id: string): ToggleState {
 	const value = options[id]
 	return isToggleState(value) ? value : 'toggle'
+}
+
+export function readFadeTargetMode(options: CompanionOptionValues): FadeTargetMode {
+	return options.targetMode === 'relative' ? 'relative' : 'absolute'
+}
+
+export function readFadeSpeedMode(options: CompanionOptionValues): FadeSpeedMode {
+	return options.speedMode === 'duration' ? 'duration' : 'rate'
 }
